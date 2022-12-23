@@ -5,11 +5,13 @@ import {
   Input,
   InputGroup,
   InputRightElement,
+  useToast,
   VStack,
 } from "@chakra-ui/react";
-import React from "react";
+import React, { useState } from "react";
 import { useReducer } from "react";
-
+import { useNavigate } from "react-router-dom";
+import axios from "axios";
 const LoginRedcer = (state, action) => {
   const { type, payload } = action;
   switch (type) {
@@ -31,6 +33,61 @@ const LoginState = {
 };
 const Login = () => {
   const [state, dispatch] = useReducer(LoginRedcer, LoginState);
+  const [loading, setLoading] = useState(false);
+  const toast = useToast();
+  const history = useNavigate();
+  const { email, password } = state;
+  const submitHandler = async () => {
+    setLoading(true);
+    if (!email || !password) {
+      toast({
+        title: "Please Fill all the Feilds",
+        status: "warning",
+        duration: 5000,
+        isClosable: true,
+        position: "bottom",
+      });
+      setLoading(false);
+      return;
+    }
+
+    // console.log(email, password);
+    try {
+      const config = {
+        headers: {
+          "Content-type": "application/json",
+        },
+      };
+      console.log(email, password);
+      const { data } = await axios.post(
+        "/api/user/login",
+        { email, password },
+        config
+      );
+
+      // console.log(JSON.stringify(data));
+      toast({
+        title: "Login Successful",
+        status: "success",
+        duration: 5000,
+        isClosable: true,
+        position: "bottom",
+      });
+      localStorage.setItem("userInfo", JSON.stringify(data));
+      setLoading(false);
+      history("/chats");
+    } catch (error) {
+      toast({
+        title: "Error Occured!",
+        description: error.response.data.message,
+        status: "error",
+        duration: 5000,
+        isClosable: true,
+        position: "bottom",
+      });
+      setLoading(false);
+    }
+  };
 
   const emailChange = (e) => {
     dispatch({ type: "EMAIL", payload: e.target.value });
@@ -73,7 +130,13 @@ const Login = () => {
           </InputRightElement>
         </InputGroup>
       </FormControl>
-      <Button colorScheme="blue" width="100%" style={{ marginTop: 15 }}>
+      <Button
+        colorScheme="blue"
+        width="100%"
+        style={{ marginTop: 15 }}
+        isLoading={loading}
+        onClick={submitHandler}
+      >
         Login
       </Button>
       <Button
